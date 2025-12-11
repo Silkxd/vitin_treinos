@@ -8,8 +8,8 @@ import { Student } from '../../types/student';
 
 const studentSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  contact: z.string().optional(),
-  medical_info: z.string().optional(),
+  contact: z.string().optional().or(z.literal('')),
+  medical_info: z.string().optional().or(z.literal('')),
   active: z.boolean().default(true),
 });
 
@@ -37,8 +37,12 @@ export const StudentForm = ({ initialData, onSubmit, onCancel, isLoading }: Stud
     },
   });
 
+  const onFormSubmit = (data: StudentFormData) => {
+    onSubmit(data);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
       <Input
         label="Nome Completo *"
         error={errors.name?.message}
