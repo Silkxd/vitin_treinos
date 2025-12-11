@@ -10,6 +10,7 @@ const studentSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   contact: z.string().optional(),
   medical_info: z.string().optional(),
+  active: z.boolean().default(true),
 });
 
 type StudentFormData = z.infer<typeof studentSchema>;
@@ -32,6 +33,7 @@ export const StudentForm = ({ initialData, onSubmit, onCancel, isLoading }: Stud
       name: initialData?.name || '',
       contact: initialData?.contact || '',
       medical_info: initialData?.medical_info || '',
+      active: initialData?.active ?? true,
     },
   });
 
@@ -60,6 +62,18 @@ export const StudentForm = ({ initialData, onSubmit, onCancel, isLoading }: Stud
         {errors.medical_info && (
           <p className="text-xs text-red-500">{errors.medical_info.message}</p>
         )}
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="active"
+          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          {...register('active')}
+        />
+        <label htmlFor="active" className="text-sm font-medium text-gray-700">
+          Aluno Ativo
+        </label>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">

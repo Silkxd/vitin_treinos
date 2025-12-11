@@ -10,14 +10,17 @@ interface ExerciseCardProps {
 }
 
 export const ExerciseCard = ({ exercise, onEdit, onDelete }: ExerciseCardProps) => {
+  const [imageError, setImageError] = React.useState(false);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden flex flex-col">
       <div className="h-40 bg-gray-100 flex items-center justify-center relative">
-        {exercise.image_url ? (
+        {exercise.image_url && !imageError ? (
           <img 
             src={exercise.image_url} 
             alt={exercise.name} 
             className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <Dumbbell className="h-12 w-12 text-gray-300" />

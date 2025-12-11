@@ -4,6 +4,7 @@ export interface Student {
   name: string;
   contact?: string;
   medical_info?: string;
+  active: boolean;
   created_at: string;
   updated_at: string;
 }

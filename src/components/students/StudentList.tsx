@@ -58,8 +58,12 @@ export const StudentList = ({ students, onEdit, onDelete, isLoading }: StudentLi
               </TableCell>
               <TableCell>{student.contact}</TableCell>
               <TableCell>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Ativo
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  student.active !== false
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {student.active !== false ? 'Ativo' : 'Inativo'}
                 </span>
               </TableCell>
               <TableCell className="text-right">

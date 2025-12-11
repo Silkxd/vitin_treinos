@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import { ArrowLeft, Calendar, User, Dumbbell, TrendingUp } from 'lucide-react';
 import { useWorkouts } from '../hooks/useWorkouts';
 import { PerformanceInput } from '../components/performance/PerformanceInput';
-import { PerformanceChart } from '../components/performance/PerformanceChart';
+import { ExerciseStatsContent } from '../components/performance/ExerciseStatsCard';
 import { clsx } from 'clsx';
 
 export const WorkoutDetails = () => {
@@ -133,12 +133,6 @@ export const WorkoutDetails = () => {
 
           const history = getExerciseHistory(exercise.id);
           
-          // Calculate stats
-          const weights = history.map(h => h.weight).filter(w => w > 0);
-          const minWeight = weights.length ? Math.min(...weights) : 0;
-          const maxWeight = weights.length ? Math.max(...weights) : 0;
-          const avgWeight = weights.length ? (weights.reduce((a, b) => a + b, 0) / weights.length).toFixed(1) : '0';
-
           // Find performance for the selected date (if any) to pre-fill input
           const currentPerformance = we.performances?.find(p => p.record_date === recordDate);
           
@@ -189,25 +183,7 @@ export const WorkoutDetails = () => {
 
                 {/* Chart Section */}
                 <div className="w-full md:w-1/2 lg:w-2/5 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-4">Evolução de Carga</h4>
-                  
-                  {/* Stats Cards */}
-                  <div className="grid grid-cols-3 gap-3 mb-6">
-                    <div className="bg-gray-50 p-3 rounded-lg text-center border border-gray-100">
-                      <span className="text-xs text-gray-500 font-medium block uppercase tracking-wide">Mínimo</span>
-                      <span className="text-lg font-bold text-gray-900">{minWeight}kg</span>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg text-center border border-gray-100">
-                      <span className="text-xs text-gray-500 font-medium block uppercase tracking-wide">Máximo</span>
-                      <span className="text-lg font-bold text-gray-900">{maxWeight}kg</span>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg text-center border border-gray-100">
-                      <span className="text-xs text-gray-500 font-medium block uppercase tracking-wide">Média</span>
-                      <span className="text-lg font-bold text-gray-900">{avgWeight}kg</span>
-                    </div>
-                  </div>
-
-                  <PerformanceChart data={history} />
+                  <ExerciseStatsContent history={history} />
                 </div>
               </div>
             </div>

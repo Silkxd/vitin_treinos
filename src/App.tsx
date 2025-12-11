@@ -7,6 +7,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Students } from './pages/Students';
 import { Exercises } from './pages/Exercises';
+import { Settings } from './pages/Settings';
 import WorkoutCreate from './pages/WorkoutCreate';
 import Workouts from './pages/Workouts';
 import WorkoutDetails from './pages/WorkoutDetails';
@@ -26,6 +27,7 @@ function App() {
               <Route path="/treinos" element={<Workouts />} />
               <Route path="/treinos/novo" element={<WorkoutCreate />} />
               <Route path="/treinos/:id" element={<WorkoutDetails />} />
+              <Route path="/configuracoes" element={<Settings />} />
             </Route>
           </Route>
 
