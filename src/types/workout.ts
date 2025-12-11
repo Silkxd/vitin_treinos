@@ -7,6 +7,7 @@ export interface Workout {
   start_date: string;
   end_date: string;
   active: boolean;
+  name?: string;
   created_at: string;
   updated_at: string;
   students?: {

@@ -1,62 +1,94 @@
-import React, { useState } from 'react';
-import { DndContext, DragOverlay, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
+import React, { useState, useMemo } from 'react';
+import { Search, Plus, Copy, Trash2, CheckCircle2 } from 'lucide-react';
 import { Exercise } from '../../types/exercise';
 import { cn } from '../../lib/utils';
 
-// Draggable Exercise Item (Source)
-const DraggableExercise = ({ exercise }: { exercise: Exercise }) => {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: `source-${exercise.id}`,
-    data: { exercise, type: 'source' },
-  });
-
-  const style = transform ? {
-    transform: CSS.Translate.toString(transform),
-  } : undefined;
-
+// Exercise Item in Sidebar
+const ExerciseItem = ({ 
+  exercise, 
+  onAdd 
+}: { 
+  exercise: Exercise; 
+  onAdd: (exercise: Exercise) => void; 
+}) => {
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className="p-3 bg-white border border-gray-200 rounded-md mb-2 cursor-move hover:border-primary shadow-sm"
+      onClick={() => onAdd(exercise)}
+      className="p-3 bg-white border border-gray-200 rounded-md mb-2 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group flex justify-between items-center shadow-sm"
     >
-      <p className="font-medium text-sm">{exercise.name}</p>
-      <p className="text-xs text-gray-500">{exercise.muscle_group}</p>
+      <div>
+        <p className="font-medium text-sm text-gray-900">{exercise.name}</p>
+        <p className="text-xs text-gray-500">{exercise.muscle_group}</p>
+      </div>
+      <Plus className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
     </div>
   );
 };
 
-// Droppable Week (Target)
-const DroppableWeek = ({ weekNumber, exercises, onRemove }: { weekNumber: number, exercises: Exercise[], onRemove: (index: number) => void }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `week-${weekNumber}`,
-    data: { weekNumber, type: 'target' },
-  });
-
+// Selectable Week Card
+const WeekCard = ({ 
+  weekNumber, 
+  exercises, 
+  isSelected, 
+  onSelect, 
+  onRemoveExercise 
+}: { 
+  weekNumber: number; 
+  exercises: Exercise[]; 
+  isSelected: boolean; 
+  onSelect: () => void; 
+  onRemoveExercise: (index: number) => void; 
+}) => {
   return (
     <div
-      ref={setNodeRef}
+      onClick={onSelect}
       className={cn(
-        "p-4 bg-gray-50 rounded-lg border-2 min-h-[150px] transition-colors",
-        isOver ? "border-primary bg-primary/5" : "border-dashed border-gray-300"
+        "p-4 rounded-lg border-2 min-h-[200px] transition-all cursor-pointer relative",
+        isSelected 
+          ? "border-primary bg-primary/5 ring-2 ring-primary/20 ring-offset-2" 
+          : "border-gray-200 bg-gray-50 hover:border-gray-300"
       )}
     >
-      <h3 className="font-semibold text-gray-700 mb-3">Semana {weekNumber}</h3>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className={cn(
+          "font-semibold",
+          isSelected ? "text-primary" : "text-gray-700"
+        )}>
+          Semana {weekNumber}
+        </h3>
+        {isSelected && (
+          <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            Selecionada
+          </span>
+        )}
+      </div>
+
       {exercises.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">Arraste exercícios aqui</p>
+        <div className="h-32 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+          <p className="text-sm">Clique para selecionar</p>
+          <p className="text-xs mt-1">Adicione exercícios da lista</p>
+        </div>
       ) : (
         <div className="space-y-2">
           {exercises.map((ex, idx) => (
-            <div key={`${ex.id}-${idx}`} className="p-2 bg-white rounded border border-gray-200 text-sm flex justify-between items-center group">
-              <span>{ex.name}</span>
+            <div 
+              key={`${ex.id}-${idx}`} 
+              className="p-2 bg-white rounded border border-gray-200 text-sm flex justify-between items-center group shadow-sm hover:border-red-200 transition-colors"
+            >
+              <div className="flex-1 truncate mr-2">
+                <span className="font-medium text-gray-700">{ex.name}</span>
+                <span className="text-xs text-gray-400 block">{ex.muscle_group}</span>
+              </div>
               <button 
-                onClick={() => onRemove(idx)}
-                className="text-red-500 opacity-0 group-hover:opacity-100 hover:text-red-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveExercise(idx);
+                }}
+                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                title="Remover exercício"
               >
-                ×
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           ))}
@@ -73,32 +105,33 @@ interface WorkoutBuilderProps {
 }
 
 export const WorkoutBuilder = ({ availableExercises, weeks, setWeeks }: WorkoutBuilderProps) => {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>('all');
 
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
-    if (event.active.data.current?.type === 'source') {
-      setActiveExercise(event.active.data.current.exercise);
-    }
-  };
+  // Filter exercises based on search and muscle group
+  const filteredExercises = useMemo(() => {
+    return availableExercises.filter(ex => {
+      const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          ex.muscle_group.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesGroup = selectedMuscleGroup === 'all' || ex.muscle_group === selectedMuscleGroup;
+      return matchesSearch && matchesGroup;
+    });
+  }, [availableExercises, searchTerm, selectedMuscleGroup]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+  // Get unique muscle groups for filter
+  const muscleGroups = useMemo(() => {
+    const groups = new Set(availableExercises.map(ex => ex.muscle_group));
+    return ['all', ...Array.from(groups).sort()];
+  }, [availableExercises]);
 
-    if (over && active.data.current?.type === 'source') {
-      const weekId = over.id as string; // week-1
-      const weekNum = parseInt(weekId.split('-')[1]);
-      const exercise = active.data.current.exercise as Exercise;
+  const addExerciseToWeek = (exercise: Exercise) => {
+    if (!selectedWeek) return;
 
-      setWeeks(prev => ({
-        ...prev,
-        [weekNum]: [...(prev[weekNum] || []), exercise]
-      }));
-    }
-
-    setActiveId(null);
-    setActiveExercise(null);
+    setWeeks(prev => ({
+      ...prev,
+      [selectedWeek]: [...(prev[selectedWeek] || []), exercise]
+    }));
   };
 
   const removeExerciseFromWeek = (weekNum: number, index: number) => {
@@ -108,41 +141,105 @@ export const WorkoutBuilder = ({ availableExercises, weeks, setWeeks }: WorkoutB
     }));
   };
 
+  const cloneWeekOne = () => {
+    if (window.confirm('Isso substituirá os exercícios das outras semanas pelos da Semana 1. Deseja continuar?')) {
+      const weekOneExercises = weeks[1] || [];
+      
+      setWeeks(prev => {
+        const newWeeks = { ...prev };
+        Object.keys(newWeeks).forEach(key => {
+          const weekNum = parseInt(key);
+          if (weekNum !== 1) {
+            newWeeks[weekNum] = [...weekOneExercises];
+          }
+        });
+        return newWeeks;
+      });
+    }
+  };
+
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex gap-6 h-[600px]">
-        {/* Sidebar: Exercises */}
-        <div className="w-1/3 flex flex-col bg-gray-50 rounded-lg p-4 overflow-hidden border border-gray-200">
-          <h3 className="font-bold text-gray-700 mb-4">Exercícios Disponíveis</h3>
-          <div className="overflow-y-auto flex-1 pr-2">
-            {availableExercises.map(ex => (
-              <DraggableExercise key={ex.id} exercise={ex} />
-            ))}
+    <div className="flex gap-6 h-[600px]">
+      {/* Sidebar: Exercises */}
+      <div className="w-1/3 flex flex-col bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100 space-y-3 bg-gray-50">
+          <h3 className="font-bold text-gray-800">Exercícios</h3>
+          
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input 
+              type="text"
+              placeholder="Buscar exercício..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
           </div>
+
+          {/* Muscle Group Filter */}
+          <select 
+            value={selectedMuscleGroup}
+            onChange={(e) => setSelectedMuscleGroup(e.target.value)}
+            className="w-full p-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
+          >
+            <option value="all">Todos os grupos musculares</option>
+            {muscleGroups.filter(g => g !== 'all').map(group => (
+              <option key={group} value={group}>{group}</option>
+            ))}
+          </select>
         </div>
 
-        {/* Main: Weeks */}
+        <div className="flex-1 overflow-y-auto p-3 bg-gray-50/50">
+          {filteredExercises.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              Nenhum exercício encontrado.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredExercises.map(ex => (
+                <ExerciseItem 
+                  key={ex.id} 
+                  exercise={ex} 
+                  onAdd={addExerciseToWeek}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main: Weeks */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-sm text-gray-600">
+            Selecione uma semana abaixo e clique nos exercícios ao lado para adicionar.
+          </p>
+          <button
+            onClick={cloneWeekOne}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
+            title="Copiar exercícios da Semana 1 para todas as outras semanas"
+          >
+            <Copy className="w-4 h-4" />
+            Clonar Semana 1
+          </button>
+        </div>
+
         <div className="flex-1 overflow-y-auto pr-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
             {Object.keys(weeks).map(weekNum => (
-              <DroppableWeek 
+              <WeekCard 
                 key={weekNum} 
                 weekNumber={parseInt(weekNum)} 
                 exercises={weeks[parseInt(weekNum)]}
-                onRemove={(idx) => removeExerciseFromWeek(parseInt(weekNum), idx)}
+                isSelected={selectedWeek === parseInt(weekNum)}
+                onSelect={() => setSelectedWeek(parseInt(weekNum))}
+                onRemoveExercise={(idx) => removeExerciseFromWeek(parseInt(weekNum), idx)}
               />
             ))}
           </div>
         </div>
       </div>
-
-      <DragOverlay>
-        {activeId && activeExercise ? (
-          <div className="p-3 bg-white border border-primary rounded-md shadow-lg opacity-80 w-64">
-            <p className="font-medium text-sm">{activeExercise.name}</p>
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+    </div>
   );
 };

@@ -11,6 +11,7 @@ interface WorkoutState {
   fetchWorkoutDetails: (id: string) => Promise<void>;
   createWorkout: (workout: Omit<Workout, 'id' | 'created_at' | 'updated_at'>, exercises: any[]) => Promise<void>;
   savePerformance: (data: { workout_exercise_id: string; weight: number; repetitions: number; record_date: string }) => Promise<void>;
+  saveBulkPerformance: (performances: { workout_exercise_id: string; weight: number; repetitions: number; record_date: string }[]) => Promise<void>;
 }
 
 export const useWorkouts = create<WorkoutState>((set, get) => ({
@@ -70,10 +71,21 @@ export const useWorkouts = create<WorkoutState>((set, get) => ({
   createWorkout: async (workoutData, exercises) => {
     set({ loading: true, error: null });
     try {
-      // 1. Create Workout
+      // 1. Calculate next workout number
+      const { count, error: countError } = await supabase
+        .from('workouts')
+        .select('*', { count: 'exact', head: true })
+        .eq('student_id', workoutData.student_id);
+
+      if (countError) throw countError;
+
+      const nextNumber = (count || 0) + 1;
+      const workoutName = `Treino ${nextNumber}`;
+
+      // 2. Create Workout
       const { data: workout, error: workoutError } = await supabase
         .from('workouts')
-        .insert([workoutData])
+        .insert([{ ...workoutData, name: workoutName }])
         .select()
         .single();
       
@@ -116,6 +128,23 @@ export const useWorkouts = create<WorkoutState>((set, get) => ({
       }
     } catch (err: any) {
       console.error('Error saving performance:', err);
+      throw err;
+    }
+  },
+  saveBulkPerformance: async (performances) => {
+    try {
+      const { error } = await supabase
+        .from('performances')
+        .upsert(performances, { onConflict: 'workout_exercise_id, record_date' });
+      
+      if (error) throw error;
+      
+      const currentSelected = get().selectedWorkout;
+      if (currentSelected) {
+        await get().fetchWorkoutDetails(currentSelected.id);
+      }
+    } catch (err: any) {
+      console.error('Error saving bulk performance:', err);
       throw err;
     }
   }

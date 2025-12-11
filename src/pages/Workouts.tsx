@@ -75,7 +75,7 @@ export const Workouts = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">
-                        {student?.name}
+                        {workout.name || 'Treino sem nome'}
                       </h3>
                       <span className={clsx(
                         "text-xs px-2 py-0.5 rounded-full font-medium",
