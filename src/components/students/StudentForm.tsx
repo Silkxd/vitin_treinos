@@ -8,9 +8,9 @@ import { Student } from '../../types/student';
 
 const studentSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  contact: z.string().optional().or(z.literal('')),
-  medical_info: z.string().optional().or(z.literal('')),
-  active: z.boolean().default(true),
+  contact: z.string().optional(),
+  medical_info: z.string().optional(),
+  active: z.boolean(),
 });
 
 type StudentFormData = z.infer<typeof studentSchema>;
