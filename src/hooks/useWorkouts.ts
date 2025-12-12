@@ -27,7 +27,15 @@ export const useWorkouts = create<WorkoutState>((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('workouts')
-        .select('*, students(name)')
+        .select(`
+          *,
+          students(name),
+          workout_exercises (
+            *,
+            exercises (*),
+            performances (*)
+          )
+        `)
         .order('created_at', { ascending: false });
       if (error) throw error;
       set({ workouts: data || [] });

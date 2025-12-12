@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { differenceInCalendarWeeks, addWeeks, format } from 'date-fns';
+import { differenceInCalendarWeeks, addWeeks, format, eachDayOfInterval, isWeekend, startOfWeek } from 'date-fns';
 import { Save, ArrowLeft, Calendar } from 'lucide-react';
 import { useStudents } from '../hooks/useStudents';
 import { useExercises } from '../hooks/useExercises';
@@ -25,7 +25,7 @@ export default function WorkoutCreate() {
   const { students, fetchStudents } = useStudents();
   const { exercises, fetchExercises } = useExercises();
   const { createWorkout, loading: saving } = useWorkouts();
-  
+
   const [weeks, setWeeks] = useState<{ [key: number]: Exercise[] }>({});
   const [weekCount, setWeekCount] = useState(4);
 
@@ -47,12 +47,30 @@ export default function WorkoutCreate() {
 
   useEffect(() => {
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diff = differenceInCalendarWeeks(end, start);
-      // Ensure at least 1 week, and reasonable max (e.g. 12)
-      const count = Math.max(1, Math.min(12, diff));
-      setWeekCount(count);
+      // Parse dates as Local Time to ensure correct Day of Week checks
+      const [startY, startM, startD] = startDate.split('-').map(Number);
+      const [endY, endM, endD] = endDate.split('-').map(Number);
+
+      const start = new Date(startY, startM - 1, startD);
+      const end = new Date(endY, endM - 1, endD);
+
+      if (start <= end) {
+        const days = eachDayOfInterval({ start, end });
+        const validWeeks = new Set<string>();
+
+        days.forEach(day => {
+          // If it's a working day (Mon-Fri), mark this week as valid
+          if (!isWeekend(day)) {
+            // Identify the week by its start date string
+            const weekId = startOfWeek(day).toISOString();
+            validWeeks.add(weekId);
+          }
+        });
+
+        // Ensure at least 1 week, and reasonable max (e.g. 12)
+        const count = Math.max(1, Math.min(12, validWeeks.size));
+        setWeekCount(count);
+      }
     }
   }, [startDate, endDate]);
 
@@ -104,7 +122,7 @@ export default function WorkoutCreate() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
@@ -180,7 +198,7 @@ export default function WorkoutCreate() {
 
         <div className="border-t border-gray-200 pt-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Montagem do Treino ({weekCount} Semanas)</h2>
-          <WorkoutBuilder 
+          <WorkoutBuilder
             availableExercises={exercises}
             weeks={weeks}
             setWeeks={setWeeks}
