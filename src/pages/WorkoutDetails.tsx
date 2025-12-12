@@ -17,7 +17,7 @@ interface WeeklyInputProps {
 const WeeklyInput = ({ weekNumber, weight, reps, onChange }: WeeklyInputProps) => (
   <div className="flex flex-col items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
     <span className="text-xs font-bold text-gray-500 uppercase">S{weekNumber}</span>
-    <div className="flex gap-2">
+    <div className="flex flex-col gap-2">
       <div className="flex flex-col">
         <label className="text-[10px] text-gray-400 text-center">kg</label>
         <input
@@ -44,7 +44,7 @@ export const WorkoutDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { selectedWorkout, fetchWorkoutDetails, saveBulkPerformance, loading } = useWorkouts();
-  
+
   const [saving, setSaving] = useState(false);
   const [performances, setPerformances] = useState<{ [key: string]: { weight: number; reps: number } }>({});
 
@@ -58,21 +58,21 @@ export const WorkoutDetails = () => {
   useEffect(() => {
     if (selectedWorkout?.workout_exercises) {
       const initialPerformances: { [key: string]: { weight: number; reps: number } } = {};
-      
+
       selectedWorkout.workout_exercises.forEach(we => {
         // We use the current date as the key for simplicity in this view, 
         // assuming we are editing the "current state" of the workout plan.
         // In a real app, you might want to handle specific dates better.
         // Here we map: workout_exercise_id -> { weight, reps }
         // We look for the MOST RECENT performance record for this item to pre-fill
-        
+
         if (we.performances && we.performances.length > 0) {
-           // Sort by date desc
-           const sorted = [...we.performances].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
-           const latest = sorted[0];
-           initialPerformances[we.id] = { weight: latest.weight || 0, reps: latest.repetitions || 0 };
+          // Sort by date desc
+          const sorted = [...we.performances].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
+          const latest = sorted[0];
+          initialPerformances[we.id] = { weight: latest.weight || 0, reps: latest.repetitions || 0 };
         } else {
-           initialPerformances[we.id] = { weight: 0, reps: 0 };
+          initialPerformances[we.id] = { weight: 0, reps: 0 };
         }
       });
       setPerformances(initialPerformances);
@@ -97,7 +97,7 @@ export const WorkoutDetails = () => {
         workout_exercise_id: workoutExerciseId,
         weight: data.weight,
         repetitions: data.reps,
-        record_date: today 
+        record_date: today
       })).filter(p => p.weight > 0 || p.repetitions > 0); // Only save if there's data
 
       if (updates.length > 0) {
@@ -150,7 +150,7 @@ export const WorkoutDetails = () => {
       {/* Header */}
       <div className="flex items-center justify-between sticky top-0 bg-gray-50 z-10 py-4 border-b border-gray-200">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/treinos')}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >

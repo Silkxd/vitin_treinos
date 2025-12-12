@@ -4,7 +4,7 @@ import { cn } from '../lib/utils';
 import { useStudents } from '../hooks/useStudents';
 import { useWorkouts } from '../hooks/useWorkouts';
 import { ExerciseStatsCard } from '../components/performance/ExerciseStatsCard';
-import { getExerciseHistory } from '../utils/workoutUtils';
+import { getExerciseHistory, getAggregateExerciseHistory } from '../utils/workoutUtils';
 import html2canvas from 'html2canvas';
 
 interface StatCardProps {
@@ -43,9 +43,9 @@ const StatCard = ({ title, value, icon: Icon, description, color = 'blue' }: Sta
 
 export const Dashboard = () => {
   const { students, fetchStudents } = useStudents();
-  const { workouts, fetchWorkouts, fetchWorkoutDetails, selectedWorkout } = useWorkouts();
+  const { workouts, fetchWorkouts, fetchWorkoutDetails, selectedWorkout, fetchStudentHistory, studentHistory } = useWorkouts();
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
-  
+
   const dashboardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,11 +61,14 @@ export const Dashboard = () => {
   // Handle Student Selection
   useEffect(() => {
     if (selectedStudentId) {
-      // Find latest workout for this student
+      // Fetch full history for data aggregation
+      fetchStudentHistory(selectedStudentId);
+
+      // Find latest workout for context (dates, name etc)
       const studentWorkouts = workouts
         .filter(w => w.student_id === selectedStudentId)
         .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
-      
+
       if (studentWorkouts.length > 0) {
         fetchWorkoutDetails(studentWorkouts[0].id);
       }
@@ -86,20 +89,22 @@ export const Dashboard = () => {
   };
 
   // Group exercises by ID to show unique charts
+  // We want to show charts for exercises present in the LATEST workout, 
+  // but using data from ALL history.
   const uniqueExercises = useMemo(() => {
     if (!selectedWorkout?.workout_exercises) return [];
-    
+
     const seen = new Set();
     const unique: any[] = [];
-    
+
     // Sort by order first to maintain some order
     const sortedExercises = [...selectedWorkout.workout_exercises].sort((a, b) => a.order_index - b.order_index);
 
     sortedExercises.forEach(we => {
-        if (!seen.has(we.exercise_id)) {
-            seen.add(we.exercise_id);
-            unique.push(we);
-        }
+      if (!seen.has(we.exercise_id)) {
+        seen.add(we.exercise_id);
+        unique.push(we);
+      }
     });
     return unique;
   }, [selectedWorkout]);
@@ -113,24 +118,24 @@ export const Dashboard = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Alunos Ativos" 
-          value={activeStudents} 
-          icon={Users} 
+        <StatCard
+          title="Alunos Ativos"
+          value={activeStudents}
+          icon={Users}
           description="Alunos cadastrados e ativos"
           color="blue"
         />
-        <StatCard 
-          title="Treinos Ativos" 
-          value={activeWorkouts} 
-          icon={Dumbbell} 
+        <StatCard
+          title="Treinos Ativos"
+          value={activeWorkouts}
+          icon={Dumbbell}
           description="Planos de treino em vigência"
           color="green"
         />
-        <StatCard 
-          title="Total de Treinos" 
-          value={totalWorkouts} 
-          icon={Activity} 
+        <StatCard
+          title="Total de Treinos"
+          value={totalWorkouts}
+          icon={Activity}
           description="Histórico total de treinos criados"
           color="purple"
         />
@@ -167,36 +172,37 @@ export const Dashboard = () => {
         </div>
 
         {selectedStudentId && !selectedWorkout && (
-           <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-             Este aluno não possui treinos registrados.
-           </div>
+          <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+            Este aluno não possui treinos registrados.
+          </div>
         )}
 
         {/* Charts Section (Exportable) */}
         {selectedStudentId && selectedWorkout && (
           <div ref={dashboardRef} className="bg-gray-50/50 p-4 rounded-xl">
-             <div className="mb-6 text-center md:text-left">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Desempenho: {selectedWorkout.students?.name}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Último treino iniciado em {new Date(selectedWorkout.start_date).toLocaleDateString('pt-BR')}
-                </p>
-             </div>
-             
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {uniqueExercises.map((we) => {
-                 const history = getExerciseHistory(selectedWorkout, we.exercise_id);
-                 return (
-                   <ExerciseStatsCard 
-                     key={we.exercise_id}
-                     history={history}
-                     exerciseName={we.exercises?.name}
-                     muscleGroup={we.exercises?.muscle_group}
-                   />
-                 );
-               })}
-             </div>
+            <div className="mb-6 text-center md:text-left">
+              <h2 className="text-xl font-bold text-gray-900">
+                Desempenho: {selectedWorkout.students?.name}
+              </h2>
+              <p className="text-sm text-gray-500">
+                Último treino iniciado em {new Date(selectedWorkout.start_date).toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {uniqueExercises.map((we) => {
+                const { history, boundaries } = getAggregateExerciseHistory(studentHistory, we.exercise_id);
+                return (
+                  <ExerciseStatsCard
+                    key={we.exercise_id}
+                    history={history}
+                    boundaries={boundaries}
+                    exerciseName={we.exercises?.name}
+                    muscleGroup={we.exercises?.muscle_group}
+                  />
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
